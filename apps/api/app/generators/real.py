@@ -1,0 +1,117 @@
+"""Real AI generator using Replicate API for style transfer."""
+
+import base64
+import os
+import time
+from pathlib import Path
+from typing import Callable, Optional
+
+import replicate
+from PIL import Image
+
+from app.generators.base import GenerationError, ImageGenerator
+from app.models import StylePreset
+
+
+class RealGenerator(ImageGenerator):
+    """
+    Real image generator using Replicate API for AI-powered style transfer.
+    
+    Uses SDXL-based models for high-quality image generation with
+    clothing/style changes while preserving face identity.
+    """
+    
+    def __init__(self):
+        self.api_token = os.getenv('REPLICATE_API_TOKEN')
+        if not self.api_token:
+            raise ValueError(
+                "REPLICATE_API_TOKEN environment variable is required. "
+                "Get your token at https://replicate.com/account/api-tokens"
+            )
+    
+    def generate(
+        self,
+        input_path: Path,
+        style: StylePreset,
+        output_path: Path,
+        progress_callback: Optional[Callable[[int], None]] = None
+    ) -> Path:
+        """
+        Generate a styled version of the input image using AI.
+        """
+        try:
+            self.validate_input(input_path)
+            self.report_progress(10, progress_callback)
+            
+            # Read and encode input image
+            with open(input_path, 'rb') as f:
+                image_data = base64.b64encode(f.read()).decode('utf-8')
+            
+            # Get image dimensions for aspect ratio
+            with Image.open(input_path) as img:
+                width, height = img.size
+                # Ensure dimensions are valid for SDXL (multiples of 8)
+                width = min(1024, (width // 8) * 8)
+                height = min(1024, (height // 8) * 8)
+            
+            self.report_progress(20, progress_callback)
+            
+            # Build the prompt for style transfer
+            prompt = self._build_prompt(style)
+            
+            self.report_progress(30, progress_callback)
+            
+            # Use img2img with SDXL for style transfer
+            # This model preserves structure while changing style
+            output = replicate.run(
+                "stability-ai/sdxl:7762fd07cf82c948538e41f63f77d685e02b063e37e496e96eefd46c929f9bdc",
+                input={
+                    "image": f"data:image/png;base64,{image_data}",
+                    "prompt": prompt,
+                    "negative_prompt": "blurry, bad quality, distorted face, ugly, deformed, cartoon, anime, illustration, painting, drawing",
+                    "num_outputs": 1,
+                    "guidance_scale": 7.5,
+                    "prompt_strength": 0.65,  # Lower = more preservation of original
+                    "num_inference_steps": 30,
+                    "width": width,
+                    "height": height,
+                    "scheduler": "K_EULER",
+                }
+            )
+            
+            self.report_progress(80, progress_callback)
+            
+            # Download and save the result
+            if output and len(output) > 0:
+                result_url = output[0]
+                self._download_image(result_url, output_path)
+            else:
+                raise GenerationError("No output received from AI model")
+            
+            self.report_progress(100, progress_callback)
+            
+            return output_path
+            
+        except replicate.exceptions.ReplicateError as e:
+            raise GenerationError(f"Replicate API error: {str(e)}", cause=e)
+        except Exception as e:
+            raise GenerationError(f"Generation failed: {str(e)}", cause=e)
+    
+    def _build_prompt(self, style: StylePreset) -> str:
+        """Build the full prompt for generation."""
+        base_prompt = (
+            "professional photo of a person, "
+            "same person same face same identity, "
+            "photorealistic, high quality, detailed, "
+        )
+        return base_prompt + style.prompt
+    
+    def _download_image(self, url: str, output_path: Path) -> None:
+        """Download image from URL and save to path."""
+        import httpx
+        
+        response = httpx.get(url, follow_redirects=True)
+        response.raise_for_status()
+        
+        with open(output_path, 'wb') as f:
+            f.write(response.content)

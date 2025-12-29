@@ -1,0 +1,33 @@
+# FastAPI and server
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+python-multipart>=0.0.6
+
+# Validation
+pydantic>=2.5.3
+pydantic-settings>=2.1.0
+
+# Redis and job queue
+redis>=5.0.1
+rq>=1.15.1
+
+# Image processing
+Pillow>=10.2.0
+
+# HTTP client (for health checks)
+httpx>=0.26.0
+
+# Utilities
+python-dotenv>=1.0.0
+structlog>=24.1.0
+
+# Testing
+pytest>=7.4.4
+pytest-asyncio>=0.23.3
+
+# Rate limiting
+slowapi>=0.1.9
+
+# Async file operations
+aiofiles>=23.0.0
+
