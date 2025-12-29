@@ -85,8 +85,18 @@ async def create_job(
         input_filename=input_path.name
     )
     
-    # Queue the job for background processing
-    job_service.enqueue_job(job_id)
+    # Process immediately (no worker required for free hosting)
+    # For production with real AI, use: job_service.enqueue_job(job_id)
+    import os
+    if os.getenv("PROCESS_INLINE", "true").lower() == "true":
+        from app.workers.tasks import process_image
+        try:
+            process_image(job_id)
+            job = job_service.get_job(job_id)
+        except Exception as e:
+            logger.error("Inline processing failed", error=str(e))
+    else:
+        job_service.enqueue_job(job_id)
     
     logger.info(
         "Job created",
