@@ -82,8 +82,21 @@ class RealGenerator(ImageGenerator):
             self.report_progress(80, progress_callback)
             
             # Download and save the result
-            if output and len(output) > 0:
-                result_url = output[0]
+            if output:
+                # Handle both old (list of URLs) and new (FileOutput) SDK formats
+                if hasattr(output, '__iter__') and not isinstance(output, str):
+                    result = list(output)[0] if output else None
+                else:
+                    result = output
+                
+                if result is None:
+                    raise GenerationError("No output received from AI model")
+                
+                # Get URL string from FileOutput object or use directly if string
+                result_url = str(result) if hasattr(result, 'url') else result
+                if hasattr(result, 'url'):
+                    result_url = result.url
+                
                 self._download_image(result_url, output_path)
             else:
                 raise GenerationError("No output received from AI model")
@@ -106,12 +119,20 @@ class RealGenerator(ImageGenerator):
         )
         return base_prompt + style.prompt
     
-    def _download_image(self, url: str, output_path: Path) -> None:
-        """Download image from URL and save to path."""
+    def _download_image(self, url_or_file, output_path: Path) -> None:
+        """Download image from URL or FileOutput and save to path."""
         import httpx
         
-        response = httpx.get(url, follow_redirects=True)
-        response.raise_for_status()
-        
-        with open(output_path, 'wb') as f:
-            f.write(response.content)
+        # Handle FileOutput object from newer replicate SDK
+        if hasattr(url_or_file, 'read'):
+            # It's a file-like object
+            with open(output_path, 'wb') as f:
+                f.write(url_or_file.read())
+        else:
+            # It's a URL string
+            url = str(url_or_file)
+            response = httpx.get(url, follow_redirects=True)
+            response.raise_for_status()
+            
+            with open(output_path, 'wb') as f:
+                f.write(response.content)
