@@ -21,7 +21,8 @@ class RealGenerator(ImageGenerator):
     """
     
     # Model: IP-Adapter FaceID SDXL - best for face preservation
-    MODEL_ID = "lucataco/ip-adapter-faceid-sdxl:b78ab6df21a19c8e3cbc7ba6ffb65f6d3aa0fef1c81aaf8e2d84d7a0e16ccefd"
+    # Using model name only - Replicate will use latest version
+    MODEL_ID = "lucataco/ip-adapter-faceid-sdxl"
     
     def __init__(self):
         self.api_token = os.getenv('REPLICATE_API_TOKEN')
