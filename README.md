@@ -186,18 +186,95 @@ StylePreset(
 )
 ```
 
+## Live Demo
+
+🚀 **https://styleforge-blush.vercel.app**
+
 ## Image Generator Implementations
 
-### StubGenerator (Default)
-Returns original image with style watermark. Use for local testing without AI services.
+### StubGenerator (Default - Free)
+Returns original image with style-specific color grading and effects. Great for testing the UI/UX without AI costs.
 
-### RealGenerator (TODO)
-Skeleton implementation with clear function boundaries for integrating actual AI image generation:
-- Face detection and preservation
-- Style transfer via diffusion models
-- Background preservation
+### RealGenerator (Replicate - Paid)
+Uses [Replicate](https://replicate.com) API with Stable Diffusion XL for actual AI-powered clothing changes.
 
-To switch generators, set `IMAGE_GENERATOR=real` in `.env`.
+**Cost:** ~$0.01-0.05 per image
+
+## Setting Up AI Generation (Replicate)
+
+1. Sign up at **https://replicate.com** (free account)
+2. Go to **https://replicate.com/account/api-tokens**
+3. Create a new API token
+4. Add credits at **https://replicate.com/account/billing** (minimum ~$5)
+5. Set environment variables:
+   ```
+   REPLICATE_API_TOKEN=r8_your_token_here
+   IMAGE_GENERATOR=real
+   ```
+
+### AI Pricing Comparison
+
+| Service | Cost/Image | Quality | Face Preservation |
+|---------|-----------|---------|-------------------|
+| **Replicate (SDXL)** | ~$0.01-0.05 | ⭐⭐⭐⭐ | Medium |
+| **Replicate (IP-Adapter)** | ~$0.03-0.08 | ⭐⭐⭐⭐⭐ | High |
+| **fal.ai** | ~$0.01-0.03 | ⭐⭐⭐⭐ | Medium |
+| **OpenAI DALL-E 3** | ~$0.04-0.08 | ⭐⭐⭐⭐ | Low |
+
+To switch generators, set `IMAGE_GENERATOR=stub` or `IMAGE_GENERATOR=real` in your environment.
+
+## Deployment
+
+### Free Hosting Stack
+
+| Service | Component | Free Tier |
+|---------|-----------|-----------|
+| **Vercel** | Frontend (Next.js) | Unlimited |
+| **Render** | Backend (FastAPI) | 750 hrs/month |
+| **Upstash** | Redis | 10k commands/day |
+
+### Deploy to Production
+
+1. **Push to GitHub**
+   ```bash
+   git init
+   git add .
+   git commit -m "Initial commit"
+   gh repo create styleforge --public --source=. --push
+   ```
+
+2. **Set up Upstash Redis**
+   - Go to https://upstash.com
+   - Create a database
+   - Copy the Redis URL
+
+3. **Deploy Backend to Render**
+   - Go to https://render.com
+   - New → Web Service → Public Git Repository
+   - Repo: `https://github.com/YOUR_USERNAME/styleforge`
+   - Root Directory: `apps/api`
+   - Build: `pip install -r requirements.txt`
+   - Start: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+   - Add environment variables (see below)
+
+4. **Deploy Frontend to Vercel**
+   - Go to https://vercel.com
+   - Import your GitHub repo
+   - Root Directory: `apps/web`
+   - Add: `NEXT_PUBLIC_API_URL=https://your-api.onrender.com`
+
+### Production Environment Variables
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `REDIS_URL` | Upstash Redis URL | `rediss://default:xxx@xxx.upstash.io:6379` |
+| `IMAGE_GENERATOR` | `stub` or `real` | `real` |
+| `REPLICATE_API_TOKEN` | Replicate API key | `r8_xxx` |
+| `CORS_ORIGINS` | Frontend URL | `https://your-app.vercel.app` |
+| `UPLOAD_DIR` | Upload path | `/tmp/uploads` |
+| `OUTPUT_DIR` | Output path | `/tmp/outputs` |
+| `METADATA_DIR` | Metadata path | `/tmp/metadata` |
+| `PROCESS_INLINE` | Skip worker | `true` |
 
 ## Configuration
 
