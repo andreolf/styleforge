@@ -68,10 +68,10 @@ class RealGenerator(ImageGenerator):
                 input={
                     "image": f"data:image/png;base64,{image_data}",
                     "prompt": prompt,
-                    "negative_prompt": "blurry, bad quality, distorted face, ugly, deformed, cartoon, anime, illustration, painting, drawing",
+                    "negative_prompt": "blurry, bad quality, distorted face, ugly, deformed, different face, changed face, different person, cartoon, anime, illustration, painting, drawing",
                     "num_outputs": 1,
-                    "guidance_scale": 7.5,
-                    "prompt_strength": 0.65,  # Lower = more preservation of original
+                    "guidance_scale": 7.0,
+                    "prompt_strength": 0.45,  # Lower = more preservation of original (was 0.65)
                     "num_inference_steps": 30,
                     "width": width,
                     "height": height,
@@ -113,9 +113,9 @@ class RealGenerator(ImageGenerator):
     def _build_prompt(self, style: StylePreset) -> str:
         """Build the full prompt for generation."""
         base_prompt = (
-            "professional photo of a person, "
-            "same person same face same identity, "
-            "photorealistic, high quality, detailed, "
+            "same exact person, same exact face, identical facial features, "
+            "only change the clothing and outfit, keep the face exactly the same, "
+            "professional photo, photorealistic, high quality, detailed, "
         )
         return base_prompt + style.prompt
     
