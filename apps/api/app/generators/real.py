@@ -20,9 +20,9 @@ class RealGenerator(ImageGenerator):
     a new image with the same face but different clothing/style.
     """
     
-    # Model: IP-Adapter FaceID SDXL - best for face preservation
+    # Model: IP-Adapter Face SDXL - for face preservation
     # Using model name only - Replicate will use latest version
-    MODEL_ID = "lucataco/ip-adapter-faceid-sdxl"
+    MODEL_ID = "lucataco/ip_adapter-sdxl-face"
     
     def __init__(self):
         self.api_token = os.getenv('REPLICATE_API_TOKEN')
