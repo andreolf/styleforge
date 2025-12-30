@@ -31,3 +31,6 @@ slowapi>=0.1.9
 # Async file operations
 aiofiles>=23.0.0
 
+# AI Image Generation
+replicate>=0.25.0
+
