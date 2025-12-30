@@ -1,6 +1,7 @@
 """Real AI generator using Replicate API for style transfer."""
 
 import base64
+import io
 import os
 from pathlib import Path
 from typing import Callable, Optional
@@ -22,6 +23,9 @@ class RealGenerator(ImageGenerator):
     
     # SDXL img2img model - reliable and widely available
     MODEL_ID = "stability-ai/sdxl:7762fd07cf82c948538e41f63f77d685e02b063e37e496e96eefd46c929f9bdc"
+    
+    # Max dimension to avoid GPU memory errors
+    MAX_DIMENSION = 640
     
     def __init__(self):
         self.api_token = os.getenv('REPLICATE_API_TOKEN')
@@ -45,30 +49,39 @@ class RealGenerator(ImageGenerator):
             self.validate_input(input_path)
             self.report_progress(10, progress_callback)
             
-            # Read input image as data URI
-            with open(input_path, 'rb') as f:
-                image_data = base64.b64encode(f.read()).decode('utf-8')
-            
-            # Detect image format and get dimensions
+            # Open and resize image to avoid GPU memory issues
             with Image.open(input_path) as img:
-                fmt = img.format.lower() if img.format else 'png'
-                if fmt == 'jpeg':
-                    fmt = 'jpg'
+                # Convert to RGB if necessary
+                if img.mode in ('RGBA', 'P'):
+                    img = img.convert('RGB')
+                
                 width, height = img.size
-                # Limit to 768px to avoid GPU memory issues
-                max_dim = 768
-                if width > max_dim or height > max_dim:
-                    ratio = min(max_dim / width, max_dim / height)
-                    width = int(width * ratio)
-                    height = int(height * ratio)
-                # Ensure dimensions are valid for SDXL (multiples of 8)
+                
+                # Resize if too large
+                if width > self.MAX_DIMENSION or height > self.MAX_DIMENSION:
+                    ratio = min(self.MAX_DIMENSION / width, self.MAX_DIMENSION / height)
+                    new_width = int(width * ratio)
+                    new_height = int(height * ratio)
+                    img = img.resize((new_width, new_height), Image.LANCZOS)
+                    width, height = new_width, new_height
+                
+                # Ensure dimensions are multiples of 8 for SDXL
                 width = (width // 8) * 8
                 height = (height // 8) * 8
-                # Minimum size
                 width = max(512, width)
                 height = max(512, height)
+                
+                # Crop to exact dimensions if needed
+                if img.size != (width, height):
+                    img = img.resize((width, height), Image.LANCZOS)
+                
+                # Encode resized image to base64
+                buffer = io.BytesIO()
+                img.save(buffer, format='PNG', quality=90)
+                buffer.seek(0)
+                image_data = base64.b64encode(buffer.read()).decode('utf-8')
             
-            image_uri = f"data:image/{fmt};base64,{image_data}"
+            image_uri = f"data:image/png;base64,{image_data}"
             
             self.report_progress(20, progress_callback)
             
