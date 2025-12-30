@@ -2,6 +2,33 @@
 
 Transform your photos with different fashion style presets while preserving your identity.
 
+🔗 **[Live Demo](https://styleforge.vercel.app)** | 🎨 Powered by [Replicate](https://replicate.com)
+
+---
+
+## 📸 Screenshots
+
+<p align="center">
+  <img src="docs/screenshots/upload.png" alt="Upload your photo" width="400"/>
+  <img src="docs/screenshots/styles.png" alt="Choose a style" width="400"/>
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/result.png" alt="Before and after comparison" width="600"/>
+</p>
+
+---
+
+## ✨ Features
+
+- 📤 **Upload** any photo (JPG, PNG, WebP)
+- 🎭 **Choose a style** from 7 presets (Tuxedo, Streetwear, Cyberpunk, etc.)
+- 🤖 **AI transforms** your outfit while keeping your face
+- 🔄 **Compare** before/after with slider
+- 💾 **Download** your styled image
+
+---
+
 ## Architecture
 
 ```
