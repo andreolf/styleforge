@@ -55,9 +55,18 @@ class RealGenerator(ImageGenerator):
                 if fmt == 'jpeg':
                     fmt = 'jpg'
                 width, height = img.size
+                # Limit to 768px to avoid GPU memory issues
+                max_dim = 768
+                if width > max_dim or height > max_dim:
+                    ratio = min(max_dim / width, max_dim / height)
+                    width = int(width * ratio)
+                    height = int(height * ratio)
                 # Ensure dimensions are valid for SDXL (multiples of 8)
-                width = min(1024, (width // 8) * 8)
-                height = min(1024, (height // 8) * 8)
+                width = (width // 8) * 8
+                height = (height // 8) * 8
+                # Minimum size
+                width = max(512, width)
+                height = max(512, height)
             
             image_uri = f"data:image/{fmt};base64,{image_data}"
             
