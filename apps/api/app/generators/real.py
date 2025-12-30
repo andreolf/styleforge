@@ -77,21 +77,21 @@ class RealGenerator(ImageGenerator):
             
             self.report_progress(30, progress_callback)
             
-            # Use SDXL img2img with LOW prompt_strength to preserve face
+            # Use SDXL img2img - balance between changing clothes and keeping face
             output = replicate.run(
                 self.MODEL_ID,
                 input={
                     "image": image_uri,
                     "prompt": prompt,
                     "negative_prompt": (
-                        "different person, different face, changed face, "
+                        "different person, different face, changed facial features, "
                         "blurry, bad quality, ugly, deformed, disfigured, "
                         "cartoon, anime, illustration, painting, drawing"
                     ),
                     "num_outputs": 1,
-                    "guidance_scale": 5.0,  # Lower = less aggressive
-                    "prompt_strength": 0.35,  # LOW = preserve more of original
-                    "num_inference_steps": 25,
+                    "guidance_scale": 7.5,
+                    "prompt_strength": 0.6,  # Higher to actually change clothes
+                    "num_inference_steps": 30,
                     "width": width,
                     "height": height,
                     "scheduler": "K_EULER",
@@ -132,11 +132,10 @@ class RealGenerator(ImageGenerator):
     def _build_prompt(self, style: StylePreset) -> str:
         """Build the full prompt for generation."""
         base_prompt = (
-            "same person wearing different clothes, "
-            "keep exact same face and identity, "
-            "photorealistic portrait, high quality, "
+            "photo of this exact same person, same face, same glasses if wearing any, "
+            "but now dressed in completely different outfit: "
         )
-        return base_prompt + style.prompt
+        return base_prompt + style.prompt + ", photorealistic, high quality photograph"
     
     def _download_image(self, url_or_file, output_path: Path) -> None:
         """Download image from URL or FileOutput and save to path."""
