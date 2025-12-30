@@ -1,8 +1,7 @@
-"""Real AI generator using Replicate API for style transfer."""
+"""Real AI generator using Replicate API for style transfer with face preservation."""
 
 import base64
 import os
-import time
 from pathlib import Path
 from typing import Callable, Optional
 
@@ -15,11 +14,14 @@ from app.models import StylePreset
 
 class RealGenerator(ImageGenerator):
     """
-    Real image generator using Replicate API for AI-powered style transfer.
+    Real image generator using IP-Adapter FaceID SDXL for AI-powered style transfer.
     
-    Uses SDXL-based models for high-quality image generation with
-    clothing/style changes while preserving face identity.
+    This model extracts face features from the input image and generates
+    a new image with the same face but different clothing/style.
     """
+    
+    # Model: IP-Adapter FaceID SDXL - best for face preservation
+    MODEL_ID = "lucataco/ip-adapter-faceid-sdxl:b78ab6df21a19c8e3cbc7ba6ffb65f6d3aa0fef1c81aaf8e2d84d7a0e16ccefd"
     
     def __init__(self):
         self.api_token = os.getenv('REPLICATE_API_TOKEN')
@@ -37,22 +39,23 @@ class RealGenerator(ImageGenerator):
         progress_callback: Optional[Callable[[int], None]] = None
     ) -> Path:
         """
-        Generate a styled version of the input image using AI.
+        Generate a styled version of the input image using AI with face preservation.
         """
         try:
             self.validate_input(input_path)
             self.report_progress(10, progress_callback)
             
-            # Read and encode input image
+            # Read input image as data URI
             with open(input_path, 'rb') as f:
                 image_data = base64.b64encode(f.read()).decode('utf-8')
             
-            # Get image dimensions for aspect ratio
+            # Detect image format
             with Image.open(input_path) as img:
-                width, height = img.size
-                # Ensure dimensions are valid for SDXL (multiples of 8)
-                width = min(1024, (width // 8) * 8)
-                height = min(1024, (height // 8) * 8)
+                fmt = img.format.lower() if img.format else 'png'
+                if fmt == 'jpeg':
+                    fmt = 'jpg'
+            
+            image_uri = f"data:image/{fmt};base64,{image_data}"
             
             self.report_progress(20, progress_callback)
             
@@ -61,21 +64,23 @@ class RealGenerator(ImageGenerator):
             
             self.report_progress(30, progress_callback)
             
-            # Use img2img with SDXL for style transfer
-            # This model preserves structure while changing style
+            # Use IP-Adapter FaceID SDXL for face-preserving style transfer
             output = replicate.run(
-                "stability-ai/sdxl:7762fd07cf82c948538e41f63f77d685e02b063e37e496e96eefd46c929f9bdc",
+                self.MODEL_ID,
                 input={
-                    "image": f"data:image/png;base64,{image_data}",
+                    "image": image_uri,
                     "prompt": prompt,
-                    "negative_prompt": "blurry, bad quality, distorted face, ugly, deformed, different face, changed face, different person, cartoon, anime, illustration, painting, drawing",
+                    "negative_prompt": (
+                        "blurry, bad quality, ugly, deformed, disfigured, "
+                        "low quality, pixelated, bad anatomy, bad hands, "
+                        "missing fingers, extra fingers, mutated, "
+                        "cartoon, anime, illustration, painting, drawing, sketch"
+                    ),
                     "num_outputs": 1,
-                    "guidance_scale": 7.0,
-                    "prompt_strength": 0.45,  # Lower = more preservation of original (was 0.65)
                     "num_inference_steps": 30,
-                    "width": width,
-                    "height": height,
-                    "scheduler": "K_EULER",
+                    "guidance_scale": 6.0,
+                    "ip_adapter_scale": 0.8,  # How much to preserve face (0-1)
+                    "scheduler": "EulerDiscreteScheduler",
                 }
             )
             
@@ -113,9 +118,8 @@ class RealGenerator(ImageGenerator):
     def _build_prompt(self, style: StylePreset) -> str:
         """Build the full prompt for generation."""
         base_prompt = (
-            "same exact person, same exact face, identical facial features, "
-            "only change the clothing and outfit, keep the face exactly the same, "
-            "professional photo, photorealistic, high quality, detailed, "
+            "professional portrait photo of a person, "
+            "photorealistic, high quality, detailed, studio lighting, "
         )
         return base_prompt + style.prompt
     
